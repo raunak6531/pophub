@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1 class="h3 mb-3">Search Movies, Albums, Games</h1>
+<form class="row g-2 align-items-center" id="searchForm">
+  <div class="col-12 col-md-6">
+    <input class="form-control" name="q" placeholder="Try: Interstellar, Dark Side of the Moon, Elden Ring" required>
+  </div>
+  <div class="col-6 col-md-3">
+    <select class="form-select" name="type">
+      <option value="all">All</option>
+      <option value="movie">Movies/TV</option>
+      <option value="album">Albums</option>
+      <option value="game">Games</option>
+    </select>
+  </div>
+  <div class="col-6 col-md-3 d-grid">
+    <button class="btn btn-primary">Search</button>
+  </div>
+</form>
+
+<div id="results" class="row g-3 mt-2"></div>
+
+<div class="mt-4" id="detail"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  $(document).on('click', '.list-toggle', function() {
+  const btn = $(this);
+  $.post('/api/list/toggle', {
+    item_id: btn.data('id'),
+    item_type: btn.data('type'),
+    list_type: btn.data('list'),
+    csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+  }, function(resp) {
+    // Toggle button state text
+    if (resp.in_list) {
+      btn.text('✓ Added');
+      btn.removeClass('btn-outline-success').addClass('btn-success');
+    } else {
+      btn.text('+ Add to List');
+      btn.removeClass('btn-success').addClass('btn-outline-success');
+    }
+  }).fail(function() {
+    alert("You must be logged in to use lists.");
+  });
+});
+
+function cardTemplate(r) {
+  return `
+  <div class="col-6 col-md-3">
+    <div class="card h-100">
+      ${r.cover ? `<img src="${r.cover}" class="card-img-top" alt="cover">` : ''}
+      <div class="card-body">
+        <span class="badge bg-secondary text-uppercase">${r.type}</span>
+        <h6 class="mt-2 mb-1">${r.title} ${r.year?`<small class="text-muted">(${r.year})</small>`:''}</h6>
+        ${r.creators ? `<div class="small text-muted">${r.creators}</div>`:''}
+        <button class="btn btn-sm btn-outline-primary mt-2 detail" data-type="${r.type}" data-id="${r.id}">Details</button>
+        <button class="btn btn-sm btn-outline-success mt-2 list-toggle"
+        data-type="${r.type}" data-id="${r.id}" data-list="watch">
+  + Add to List
+</button>
+
+      </div>
+    </div>
+  </div>`;
+}
+
+$('#searchForm').on('submit', function(e){
+  e.preventDefault();
+  const params = $(this).serialize();
+  $('#results').html('<div class="text-muted">Searching...</div>');
+  $.get('/api/search', params, function(resp){
+    const grid = $('#results').empty();
+    if (!resp.results.length) {
+      grid.html('<div class="text-muted">No results. Check your API keys?</div>');
+      return;
+    }
+    resp.results.forEach(r => grid.append(cardTemplate(r)));
+  });
+});
+
+$(document).on('click','.detail',function(){
+  const t=$(this).data('type'), id=$(this).data('id');
+  $('#detail').html('<div class="text-muted">Loading details...</div>');
+  $.get(`/api/item/${t}/${id}`, function(resp){
+    const rating = resp.local_rating.avg ? resp.local_rating.avg.toFixed(1) : '—';
+    const n = resp.local_rating.n || 0;
+    // basic normalized presentation
+    $('#detail').html(`
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title text-uppercase">${t}</h5>
+          <pre class="small bg-light p-2 border" style="max-height: 280px; overflow:auto;">${JSON.stringify(resp.provider_payload, null, 2)}</pre>
+          <div class="mt-2">Community rating: <strong>${rating}</strong> (${n} review${n==1?'':'s'})</div>
+          <button class="btn btn-sm btn-outline-success mt-2" id="loadRecs">Show Similar</button>
+        </div>
+      </div>`);
+    $('#loadRecs').on('click', function(){
+      $.get(`/api/recs/${t}/${id}`, function(r){
+        const wrap = $('<div class="row g-3 mt-2"></div>');
+        r.results.forEach(x=> wrap.append(`
+          <div class="col-6 col-md-2">
+            <div class="card h-100">
+              ${x.cover ? `<img src="${x.cover}" class="card-img-top" alt="cover">` : ''}
+              <div class="card-body"><div class="small">${x.title}</div></div>
+            </div>
+          </div>`));
+        $('#detail').append(`<h6 class="mt-3">Similar</h6>`).append(wrap);
+      });
+    });
+  });
+});
+</script>
+{% endblock %}

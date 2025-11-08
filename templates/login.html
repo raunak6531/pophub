@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Login</h3>
+<form method="post">{% csrf_token %}
+  {{ form.as_p }}
+  <button class="btn btn-primary">Login</button>
+</form>
+{% endblock %}
+
+<form method="post">{% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.GET.next|default:'/' }}">
+  {{ form.as_p }}
+  <button class="btn btn-primary">Login</button>
+</form>
