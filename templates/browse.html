@@ -1,114 +1,430 @@
 {% extends 'base.html' %}
 {% block content %}
-<h1 class="h3 mb-3">Search Movies, Albums, Games</h1>
-<form class="row g-2 align-items-center" id="searchForm">
-  <div class="col-12 col-md-6">
-    <input class="form-control" name="q" placeholder="Try: Interstellar, Dark Side of the Moon, Elden Ring" required>
-  </div>
-  <div class="col-6 col-md-3">
-    <select class="form-select" name="type">
-      <option value="all">All</option>
-      <option value="movie">Movies/TV</option>
-      <option value="album">Albums</option>
-      <option value="game">Games</option>
-    </select>
-  </div>
-  <div class="col-6 col-md-3 d-grid">
-    <button class="btn btn-primary">Search</button>
-  </div>
-</form>
 
-<div id="results" class="row g-3 mt-2"></div>
+<!-- Hidden CSRF so AJAX posts work later -->
+<form id="csrfForm" style="display:none;">{% csrf_token %}</form>
 
-<div class="mt-4" id="detail"></div>
+<!-- Hero Section -->
+<div class="hero-section text-center mb-5">
+  <div class="hero-content glass-card mx-auto" style="max-width: 800px;">
+    <h1 class="hero-title mb-3">
+      <span class="text-gradient">Discover Your Next</span><br>
+      <span class="typewriter">Obsession 🔥</span>
+    </h1>
+    <p class="hero-subtitle mb-4">Movies, TV shows, music, games - all in one place. Find what's trending, rate what you love, and discover what's next.</p>
+
+    <!-- Search Form -->
+    <form id="searchForm" class="search-container">
+      <div class="search-wrapper">
+        <div class="search-input-group">
+          <i class="fas fa-search search-icon"></i>
+          <input class="search-input" name="q"
+                 placeholder="Search movies, shows, albums, games..."
+                 autocomplete="off"
+                 required>
+          <div class="search-type-selector">
+            <select class="type-select" name="type">
+              <option value="all">🌟 All</option>
+              <option value="movie">🎬 Movies</option>
+              <option value="tv">📺 TV Shows</option>
+              <option value="album">🎵 Music</option>
+              <option value="game">🎮 Games</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="search-btn">
+          <i class="fas fa-rocket"></i>
+          <span>Explore</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Quick Categories -->
+<div class="quick-categories mb-5">
+  <div class="row g-3">
+    <div class="col-6 col-md-3">
+      <div class="category-card" data-type="movie">
+        <div class="category-icon">🎬</div>
+        <h3>Movies</h3>
+        <p>Latest blockbusters & classics</p>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="category-card" data-type="tv">
+        <div class="category-icon">📺</div>
+        <h3>TV Shows</h3>
+        <p>Binge-worthy series</p>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="category-card" data-type="album">
+        <div class="category-icon">🎵</div>
+        <h3>Music</h3>
+        <p>Albums & artists you'll love</p>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="category-card" data-type="game">
+        <div class="category-icon">🎮</div>
+        <h3>Games</h3>
+        <p>Epic adventures await</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Results Section -->
+<div id="results" class="results-grid"></div>
+
+<!-- Detail Modal/Card -->
+<div id="detail" class="detail-section"></div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-  $(document).on('click', '.list-toggle', function() {
-  const btn = $(this);
-  $.post('/api/list/toggle', {
-    item_id: btn.data('id'),
-    item_type: btn.data('type'),
-    list_type: btn.data('list'),
-    csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
-  }, function(resp) {
-    // Toggle button state text
-    if (resp.in_list) {
-      btn.text('✓ Added');
-      btn.removeClass('btn-outline-success').addClass('btn-success');
-    } else {
-      btn.text('+ Add to List');
-      btn.removeClass('btn-success').addClass('btn-outline-success');
-    }
-  }).fail(function() {
-    alert("You must be logged in to use lists.");
-  });
-});
+// Modern PopHub JavaScript
+console.log('🔥 PopHub loaded and ready!');
 
+function csrf() {
+  return document.querySelector('#csrfForm input[name=csrfmiddlewaretoken]')?.value || '';
+}
+
+// Modern card template with glassmorphism
 function cardTemplate(r) {
-  return `
-  <div class="col-6 col-md-3">
-    <div class="card h-100">
-      ${r.cover ? `<img src="${r.cover}" class="card-img-top" alt="cover">` : ''}
-      <div class="card-body">
-        <span class="badge bg-secondary text-uppercase">${r.type}</span>
-        <h6 class="mt-2 mb-1">${r.title} ${r.year?`<small class="text-muted">(${r.year})</small>`:''}</h6>
-        ${r.creators ? `<div class="small text-muted">${r.creators}</div>`:''}
-        <button class="btn btn-sm btn-outline-primary mt-2 detail" data-type="${r.type}" data-id="${r.id}">Details</button>
-        <button class="btn btn-sm btn-outline-success mt-2 list-toggle"
-        data-type="${r.type}" data-id="${r.id}" data-list="watch">
-  + Add to List
-</button>
+  const typeIcons = {
+    movie: '🎬',
+    tv: '📺',
+    album: '🎵',
+    game: '🎮'
+  };
 
+  return `
+  <div class="result-card glass-card hover-lift" data-type="${r.type}" data-id="${r.id}">
+    <div class="card-image-container">
+      ${r.cover ? `<img src="${r.cover}" class="card-image" alt="${r.title}" loading="lazy">` : `<div class="card-placeholder"><i class="fas fa-image"></i></div>`}
+      <div class="card-overlay">
+        <button class="quick-action-btn" onclick="showDetail('${r.type}', '${r.id}')">
+          <i class="fas fa-info-circle"></i>
+        </button>
+      </div>
+    </div>
+    <div class="card-type-badge">
+        <span class="type-icon">${typeIcons[r.type] || '📄'}</span>
+        <span class="type-text">${r.type.toUpperCase()}</span>
+      </div>
+      <h3 class="card-title">${r.title}</h3>
+      ${r.year ? `<p class="card-year">${r.year}</p>` : ''}
+      ${r.genres && r.genres.length ? `<div class="card-genres">${r.genres.slice(0,2).map(g => `<span class="genre-tag">${g}</span>`).join('')}</div>` : ''}
+
+      <div class="card-actions">
+        <button class="action-btn primary detail" data-type="${r.type}" data-id="${r.id}">
+          <i class="fas fa-eye"></i>
+          <span>Details</span>
+        </button>
+        <button class="action-btn secondary list-toggle" data-type="${r.type}" data-id="${r.id}" data-list="watch">
+          <i class="fas fa-plus"></i>
+          <span>Add</span>
+        </button>
       </div>
     </div>
   </div>`;
 }
 
+// Category card clicks
+$('.category-card').on('click', function() {
+  const type = $(this).data('type');
+  $('select[name="type"]').val(type);
+  $('input[name="q"]').focus();
+});
+
+// Modern search with loading animation
 $('#searchForm').on('submit', function(e){
   e.preventDefault();
   const params = $(this).serialize();
-  $('#results').html('<div class="text-muted">Searching...</div>');
+  const query = $('input[name="q"]').val();
+
+  // Show loading state
+  $('#results').html(`
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Searching for "${query}"...</p>
+    </div>
+  `);
+
   $.get('/api/search', params, function(resp){
     const grid = $('#results').empty();
     if (!resp.results.length) {
-      grid.html('<div class="text-muted">No results. Check your API keys?</div>');
+      grid.html(`
+        <div class="no-results">
+          <i class="fas fa-search no-results-icon"></i>
+          <h3>No results found</h3>
+          <p>Try searching for something else or check your spelling</p>
+        </div>
+      `);
       return;
     }
-    resp.results.forEach(r => grid.append(cardTemplate(r)));
+
+    // Animate results in
+    resp.results.forEach((r, index) => {
+      setTimeout(() => {
+        const card = $(cardTemplate(r));
+        card.css('opacity', '0').appendTo(grid).animate({opacity: 1}, 300);
+      }, index * 50);
+    });
+  }).fail(function(xhr){
+    console.error('Search failed', xhr.responseText);
+    $('#results').html(`
+      <div class="error-state">
+        <i class="fas fa-exclamation-triangle error-icon"></i>
+        <h3>Oops! Something went wrong</h3>
+        <p>Please try again in a moment</p>
+      </div>
+    `);
   });
 });
 
-$(document).on('click','.detail',function(){
-  const t=$(this).data('type'), id=$(this).data('id');
-  $('#detail').html('<div class="text-muted">Loading details...</div>');
-  $.get(`/api/item/${t}/${id}`, function(resp){
-    const rating = resp.local_rating.avg ? resp.local_rating.avg.toFixed(1) : '—';
-    const n = resp.local_rating.n || 0;
-    // basic normalized presentation
-    $('#detail').html(`
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title text-uppercase">${t}</h5>
-          <pre class="small bg-light p-2 border" style="max-height: 280px; overflow:auto;">${JSON.stringify(resp.provider_payload, null, 2)}</pre>
-          <div class="mt-2">Community rating: <strong>${rating}</strong> (${n} review${n==1?'':'s'})</div>
-          <button class="btn btn-sm btn-outline-success mt-2" id="loadRecs">Show Similar</button>
+// Modern detail modal
+function showDetail(type, id) {
+  // Create modal backdrop
+  const modal = $(`
+    <div class="detail-modal" id="detailModal">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h2>Loading...</h2>
+          <button class="modal-close" onclick="closeDetailModal()">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
-      </div>`);
-    $('#loadRecs').on('click', function(){
-      $.get(`/api/recs/${t}/${id}`, function(r){
-        const wrap = $('<div class="row g-3 mt-2"></div>');
-        r.results.forEach(x=> wrap.append(`
-          <div class="col-6 col-md-2">
-            <div class="card h-100">
-              ${x.cover ? `<img src="${x.cover}" class="card-img-top" alt="cover">` : ''}
-              <div class="card-body"><div class="small">${x.title}</div></div>
+        <div class="modal-body">
+          <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Loading details...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `);
+
+  $('body').append(modal);
+  setTimeout(() => modal.addClass('show'), 10);
+
+  // Fetch details
+  $.get(`/api/item/${type}/${id}`, function(resp){
+    const data = resp.provider_payload;
+    const name = data.title || data.name || 'Unknown';
+    const rating = resp.local_rating.avg ? resp.local_rating.avg.toFixed(1) : '—';
+    const reviewCount = resp.local_rating.n || 0;
+    const year = data.release_date?.substring(0,4) || data.first_air_date?.substring(0,4) || '';
+    const overview = data.overview || 'No description available.';
+
+    const typeIcons = { movie: '🎬', tv: '📺', album: '🎵', game: '🎮' };
+
+    $('#detailModal .modal-content').html(`
+      <div class="modal-header">
+        <div class="modal-title-section">
+          <h2 class="modal-title">${name}</h2>
+          <div class="modal-meta">
+            <span class="type-badge">
+              <span class="type-icon">${typeIcons[type] || '📄'}</span>
+              ${type.toUpperCase()}
+            </span>
+            ${year ? `<span class="year-badge">${year}</span>` : ''}
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeDetailModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="detail-content">
+          <div class="community-rating">
+            <div class="rating-display">
+              <span class="rating-number">${rating}</span>
+              <div class="rating-info">
+                <div class="stars">${'★'.repeat(Math.round(rating === '—' ? 0 : rating))}${'☆'.repeat(5 - Math.round(rating === '—' ? 0 : rating))}</div>
+                <div class="rating-count">${reviewCount} review${reviewCount === 1 ? '' : 's'}</div>
+              </div>
             </div>
-          </div>`));
-        $('#detail').append(`<h6 class="mt-3">Similar</h6>`).append(wrap);
+          </div>
+
+          <div class="description">
+            <h3>Overview</h3>
+            <p>${overview}</p>
+          </div>
+
+          <div class="user-actions">
+            <div class="rating-section">
+              <h3>Rate This</h3>
+              <div class="star-rating" id="starRating">
+                ${[1,2,3,4,5].map(i => `<span class="star" data-rating="${i}">☆</span>`).join('')}
+              </div>
+              <textarea id="reviewText" class="review-input" placeholder="Share your thoughts (optional)..."></textarea>
+              <button class="action-btn primary" id="saveRating" data-type="${type}" data-id="${id}">
+                <i class="fas fa-heart"></i>
+                Save Rating
+              </button>
+            </div>
+
+            <div class="list-actions">
+              <h3>Add to List</h3>
+              <div class="list-buttons">
+                <button class="list-btn list-toggle" data-type="${type}" data-id="${id}" data-list="watch">
+                  <i class="fas fa-bookmark"></i>
+                  Watchlist
+                </button>
+                <button class="list-btn list-toggle" data-type="${type}" data-id="${id}" data-list="play">
+                  <i class="fas fa-gamepad"></i>
+                  Backlog
+                </button>
+                <button class="list-btn list-toggle" data-type="${type}" data-id="${id}" data-list="listen">
+                  <i class="fas fa-music"></i>
+                  Playlist
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="recommendations-section">
+            <button class="action-btn secondary" id="loadRecs" data-type="${type}" data-id="${id}">
+              <i class="fas fa-magic"></i>
+              Show Similar Items
+            </button>
+            <div id="recsContainer"></div>
+          </div>
+        </div>
+      </div>
+    `);
+
+    // Star rating interaction
+    $('#starRating .star').on('click', function() {
+      const rating = $(this).data('rating');
+      $('#starRating .star').each(function(index) {
+        $(this).text(index < rating ? '★' : '☆');
+      });
+      $(this).closest('.star-rating').data('selected-rating', rating);
+    });
+
+    // Save rating
+    $('#saveRating').on('click', function(){
+      const selectedRating = $('#starRating').data('selected-rating');
+      if (!selectedRating) {
+        alert('Please select a rating first!');
+        return;
+      }
+
+      $.post('/api/rate', {
+        item_id: id,
+        item_type: type,
+        rating: selectedRating,
+        text: $('#reviewText').val(),
+        csrfmiddlewaretoken: csrf()
+      }, function(resp) {
+        showNotification('Rating saved! 🎉', 'success');
+      }).fail(function(xhr){
+        showNotification('Please log in to rate items', 'error');
       });
     });
+
+  }).fail(function(xhr){
+    $('#detailModal .modal-body').html(`
+      <div class="error-state">
+        <i class="fas fa-exclamation-triangle error-icon"></i>
+        <h3>Failed to load details</h3>
+        <p>Please try again later</p>
+      </div>
+    `);
+  });
+}
+
+// Close modal function
+function closeDetailModal() {
+  $('#detailModal').removeClass('show');
+  setTimeout(() => $('#detailModal').remove(), 300);
+}
+
+// Click outside to close
+$(document).on('click', '.modal-backdrop', closeDetailModal);
+
+// Notification system
+function showNotification(message, type = 'info') {
+  const notification = $(`
+    <div class="notification ${type}">
+      <span>${message}</span>
+      <button onclick="$(this).parent().remove()">×</button>
+    </div>
+  `);
+
+  $('body').append(notification);
+  setTimeout(() => notification.addClass('show'), 10);
+  setTimeout(() => notification.remove(), 4000);
+}
+
+// Load recommendations
+$(document).on('click', '#loadRecs', function(){
+  const type = $(this).data('type');
+  const id = $(this).data('id');
+  const container = $('#recsContainer');
+
+  container.html(`
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Finding similar items...</p>
+    </div>
+  `);
+
+  $.get(`/api/recs/${type}/${id}`, function(resp){
+    if (!resp.results.length) {
+      container.html('<p class="text-muted">No similar items found.</p>');
+      return;
+    }
+
+    const recsGrid = $('<div class="recs-grid"></div>');
+    resp.results.slice(0, 6).forEach(item => {
+      const recCard = $(`
+        <div class="rec-card hover-lift" onclick="showDetail('${item.type}', '${item.id}')">
+          ${item.cover ? `<img src="${item.cover}" class="rec-image" alt="${item.title}">` : '<div class="rec-placeholder"><i class="fas fa-image"></i></div>'}
+          <div class="rec-info">
+            <h4 class="rec-title">${item.title}</h4>
+          </div>
+        </div>
+      `);
+      recsGrid.append(recCard);
+    });
+
+    container.html('<h3 class="recs-title">Similar Items</h3>').append(recsGrid);
+  }).fail(function(xhr){
+    container.html('<p class="text-danger">Failed to load recommendations.</p>');
+  });
+});
+
+// Modern list toggle
+$(document).on('click', '.list-toggle', function() {
+  const btn = $(this);
+  const originalText = btn.html();
+
+  btn.html('<i class="fas fa-spinner fa-spin"></i>');
+
+  $.post('/api/list/toggle', {
+    item_id: btn.data('id'),
+    item_type: btn.data('type'),
+    list_type: btn.data('list'),
+    csrfmiddlewaretoken: csrf()
+  }, function(resp) {
+    if (resp.in_list) {
+      btn.html('<i class="fas fa-check"></i> Added').addClass('added');
+      showNotification('Added to list! ✨', 'success');
+    } else {
+      btn.html(originalText).removeClass('added');
+      showNotification('Removed from list', 'info');
+    }
+  }).fail(function(xhr) {
+    btn.html(originalText);
+    showNotification('Please log in to use lists', 'error');
   });
 });
 </script>

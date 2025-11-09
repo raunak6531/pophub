@@ -54,10 +54,12 @@ def tmdb_search(q):
     data = fetch_with_cache(url)
     out = []
     for r in data.get("results", []):
-        if r.get("media_type") not in ("movie","tv"): 
+        mt = r.get("media_type")
+        if mt not in ("movie", "tv"):
             continue
+
         out.append({
-            "type":"movie",
+            "type": "tv" if mt == "tv" else "movie",   # ✅ THIS IS THE FIX
             "id": str(r["id"]),
             "title": r.get("title") or r.get("name"),
             "year": (r.get("release_date") or r.get("first_air_date") or "")[:4],
@@ -67,6 +69,7 @@ def tmdb_search(q):
             "provider":"tmdb"
         })
     return out
+
 
 def tmdb_item(movie_id):
     url = f"{TMDB_BASE}/movie/{movie_id}?api_key={settings.TMDB_API_KEY}&append_to_response=videos,similar"

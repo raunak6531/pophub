@@ -1,14 +1,51 @@
 {% extends 'base.html' %}
 {% block content %}
-<h3>Login</h3>
-<form method="post">{% csrf_token %}
-  {{ form.as_p }}
-  <button class="btn btn-primary">Login</button>
-</form>
-{% endblock %}
 
-<form method="post">{% csrf_token %}
-  <input type="hidden" name="next" value="{{ request.GET.next|default:'/' }}">
-  {{ form.as_p }}
-  <button class="btn btn-primary">Login</button>
-</form>
+<div class="auth-container">
+  <div class="auth-card glass-card">
+    <div class="auth-header">
+      <h1 class="auth-title">
+        <span class="text-gradient">Welcome Back!</span>
+      </h1>
+      <p class="auth-subtitle">Sign in to continue your culture journey 🚀</p>
+    </div>
+
+    <form method="post" class="auth-form">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.GET.next|default:'/' }}">
+
+      <div class="form-group">
+        <label for="{{ form.username.id_for_label }}" class="form-label">
+          <i class="fas fa-user"></i>
+          Username
+        </label>
+        {{ form.username }}
+        {% if form.username.errors %}
+          <div class="form-error">{{ form.username.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="{{ form.password.id_for_label }}" class="form-label">
+          <i class="fas fa-lock"></i>
+          Password
+        </label>
+        {{ form.password }}
+        {% if form.password.errors %}
+          <div class="form-error">{{ form.password.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="auth-btn">
+        <i class="fas fa-sign-in-alt"></i>
+        <span>Sign In</span>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Don't have an account? <a href="{% url 'signup' %}" class="auth-link">Join PopHub</a></p>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
