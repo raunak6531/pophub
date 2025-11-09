@@ -10,12 +10,19 @@ from .services import (
     tmdb_search, rawg_search, spotify_search,
     tmdb_item, rawg_item, spotify_album,
     tmdb_recs, rawg_recs, spotify_recs,
-    tmdb_tv_item, tmdb_tv_recs
+    tmdb_tv_item, tmdb_tv_recs,
+    # Trending functions
+    tmdb_trending_movies, tmdb_trending_tv, tmdb_top_rated_movies, tmdb_top_rated_tv,
+    tmdb_latest_movies, tmdb_on_air_tv, rawg_trending_games, rawg_top_rated_games,
+    rawg_new_games, spotify_trending_albums, spotify_new_releases, spotify_featured_artists
 )
 
 # ---------- Basic pages ----------
 
 def home(request):
+    return render(request, "home.html")
+
+def browse(request):
     return render(request, "browse.html")
 
 def signup(request):
@@ -165,3 +172,85 @@ def my_lists(request):
             continue
 
     return render(request, "lists.html", {"grouped": grouped})
+
+# ---------- Trending Content APIs ----------
+
+@require_http_methods(["GET"])
+def trending(request, content_type):
+    """Get trending content by type"""
+    if content_type == "movies":
+        results = tmdb_trending_movies()
+    elif content_type == "tv":
+        results = tmdb_trending_tv()
+    elif content_type == "music":
+        results = spotify_trending_albums()
+    elif content_type == "games":
+        results = rawg_trending_games()
+    else:
+        return HttpResponseBadRequest("Invalid content type")
+
+    return JsonResponse({"results": results})
+
+@require_http_methods(["GET"])
+def top_rated(request, content_type):
+    """Get top rated content by type"""
+    if content_type == "movies":
+        results = tmdb_top_rated_movies()
+    elif content_type == "tv":
+        results = tmdb_top_rated_tv()
+    elif content_type == "music":
+        results = spotify_trending_albums()  # Use trending as fallback
+    elif content_type == "games":
+        results = rawg_top_rated_games()
+    else:
+        return HttpResponseBadRequest("Invalid content type")
+
+    return JsonResponse({"results": results})
+
+@require_http_methods(["GET"])
+def latest(request, content_type):
+    """Get latest content by type"""
+    if content_type == "movies":
+        results = tmdb_latest_movies()
+    elif content_type == "tv":
+        results = tmdb_on_air_tv()
+    elif content_type == "music":
+        results = spotify_new_releases()
+    elif content_type == "games":
+        results = rawg_new_games()
+    else:
+        return HttpResponseBadRequest("Invalid content type")
+
+    return JsonResponse({"results": results})
+
+@require_http_methods(["GET"])
+def on_air(request, content_type):
+    """Get on air TV shows"""
+    if content_type == "tv":
+        results = tmdb_on_air_tv()
+    else:
+        return HttpResponseBadRequest("Only TV shows supported")
+
+    return JsonResponse({"results": results})
+
+@require_http_methods(["GET"])
+def new_releases(request, content_type):
+    """Get new releases by type"""
+    if content_type == "music":
+        results = spotify_new_releases()
+    elif content_type == "games":
+        results = rawg_new_games()
+    else:
+        return HttpResponseBadRequest("Invalid content type")
+
+    return JsonResponse({"results": results})
+
+@require_http_methods(["GET"])
+def featured(request, content_type):
+    """Get featured content by type"""
+    if content_type == "music":
+        results = spotify_featured_artists()
+    else:
+        return HttpResponseBadRequest("Only music supported")
+
+    return JsonResponse({"results": results})

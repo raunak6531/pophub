@@ -180,3 +180,138 @@ def spotify_recs(album_id):
                  "cover":(x.get("images",[{"url":""}])[0]["url"] if x.get("images") else "")}
                 for x in data.get("items",[])]
     return []
+
+# ---------- TRENDING CONTENT FUNCTIONS ----------
+
+def tmdb_trending_movies():
+    """Get trending movies from TMDB"""
+    if not settings.TMDB_API_KEY:
+        return []
+    url = f"{TMDB_BASE}/trending/movie/week?api_key={settings.TMDB_API_KEY}"
+    data = fetch_with_cache(url)
+    return format_tmdb_results(data.get("results", []), "movie")
+
+def tmdb_trending_tv():
+    """Get trending TV shows from TMDB"""
+    if not settings.TMDB_API_KEY:
+        return []
+    url = f"{TMDB_BASE}/trending/tv/week?api_key={settings.TMDB_API_KEY}"
+    data = fetch_with_cache(url)
+    return format_tmdb_results(data.get("results", []), "tv")
+
+def tmdb_top_rated_movies():
+    """Get top rated movies from TMDB"""
+    if not settings.TMDB_API_KEY:
+        return []
+    url = f"{TMDB_BASE}/movie/top_rated?api_key={settings.TMDB_API_KEY}"
+    data = fetch_with_cache(url)
+    return format_tmdb_results(data.get("results", []), "movie")
+
+def tmdb_top_rated_tv():
+    """Get top rated TV shows from TMDB"""
+    if not settings.TMDB_API_KEY:
+        return []
+    url = f"{TMDB_BASE}/tv/top_rated?api_key={settings.TMDB_API_KEY}"
+    data = fetch_with_cache(url)
+    return format_tmdb_results(data.get("results", []), "tv")
+
+def tmdb_latest_movies():
+    """Get latest movies from TMDB"""
+    if not settings.TMDB_API_KEY:
+        return []
+    url = f"{TMDB_BASE}/movie/now_playing?api_key={settings.TMDB_API_KEY}"
+    data = fetch_with_cache(url)
+    return format_tmdb_results(data.get("results", []), "movie")
+
+def tmdb_on_air_tv():
+    """Get TV shows on air today from TMDB"""
+    if not settings.TMDB_API_KEY:
+        return []
+    url = f"{TMDB_BASE}/tv/on_the_air?api_key={settings.TMDB_API_KEY}"
+    data = fetch_with_cache(url)
+    return format_tmdb_results(data.get("results", []), "tv")
+
+def format_tmdb_results(results, content_type):
+    """Format TMDB results into consistent format"""
+    formatted = []
+    for r in results:
+        formatted.append({
+            "type": content_type,
+            "id": str(r["id"]),
+            "title": r.get("title") or r.get("name"),
+            "year": (r.get("release_date") or r.get("first_air_date") or "")[:4],
+            "genres": [g["name"] for g in r.get("genres", [])] if "genres" in r else [],
+            "cover": f"https://image.tmdb.org/t/p/w500{r['poster_path']}" if r.get("poster_path") else "",
+            "overview": r.get("overview", ""),
+            "rating": r.get("vote_average", 0),
+            "provider": "tmdb"
+        })
+    return formatted
+
+def rawg_trending_games():
+    """Get trending games from RAWG"""
+    if not settings.RAWG_API_KEY:
+        return []
+    url = f"{RAWG_BASE}/games?key={settings.RAWG_API_KEY}&dates=2023-01-01,2024-12-31&ordering=-added"
+    data = fetch_with_cache(url)
+    return format_rawg_results(data.get("results", []))
+
+def rawg_top_rated_games():
+    """Get top rated games from RAWG"""
+    if not settings.RAWG_API_KEY:
+        return []
+    url = f"{RAWG_BASE}/games?key={settings.RAWG_API_KEY}&ordering=-rating"
+    data = fetch_with_cache(url)
+    return format_rawg_results(data.get("results", []))
+
+def rawg_new_games():
+    """Get new games from RAWG"""
+    if not settings.RAWG_API_KEY:
+        return []
+    url = f"{RAWG_BASE}/games?key={settings.RAWG_API_KEY}&dates=2024-01-01,2024-12-31&ordering=-released"
+    data = fetch_with_cache(url)
+    return format_rawg_results(data.get("results", []))
+
+def format_rawg_results(results):
+    """Format RAWG results into consistent format"""
+    formatted = []
+    for r in results:
+        formatted.append({
+            "type": "game",
+            "id": str(r["id"]),
+            "title": r.get("name", ""),
+            "year": r.get("released", "")[:4] if r.get("released") else "",
+            "genres": [g["name"] for g in r.get("genres", [])],
+            "cover": r.get("background_image", ""),
+            "overview": r.get("description_raw", "")[:200] + "..." if r.get("description_raw") else "",
+            "rating": r.get("rating", 0),
+            "provider": "rawg"
+        })
+    return formatted
+
+def spotify_trending_albums():
+    """Get trending albums - using popular artists"""
+    popular_artists = ["Taylor Swift", "Drake", "Bad Bunny", "The Weeknd", "Ariana Grande"]
+    results = []
+    for artist in popular_artists[:3]:
+        albums = spotify_search(artist)
+        results.extend(albums[:2])
+    return results
+
+def spotify_new_releases():
+    """Get new music releases"""
+    recent_artists = ["Sabrina Carpenter", "Chappell Roan", "Benson Boone", "Tate McRae"]
+    results = []
+    for artist in recent_artists[:3]:
+        albums = spotify_search(artist)
+        results.extend(albums[:2])
+    return results
+
+def spotify_featured_artists():
+    """Get featured artists albums"""
+    featured_artists = ["Billie Eilish", "Dua Lipa", "Post Malone", "Olivia Rodrigo"]
+    results = []
+    for artist in featured_artists[:3]:
+        albums = spotify_search(artist)
+        results.extend(albums[:2])
+    return results

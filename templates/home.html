@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<!-- Hidden CSRF for AJAX -->
+<form id="csrfForm" style="display:none;">{% csrf_token %}</form>
+
+<!-- Dynamic Theme Container -->
+<div id="themeContainer" class="theme-container" data-current-theme="movies">
+  
+  <!-- Hero Section with Category Tabs -->
+  <div class="hero-section-home">
+    <div class="hero-content-home">
+      <h1 class="hero-title-dynamic">
+        <span class="theme-text" id="heroText">What's Hot in Movies 🎬</span>
+      </h1>
+      <p class="hero-subtitle-dynamic" id="heroSubtitle">
+        Discover trending blockbusters, hidden gems, and must-watch classics
+      </p>
+      
+      <!-- Category Switcher -->
+      <div class="category-switcher">
+        <button class="category-tab active" data-category="movies" data-theme="movies">
+          <span class="tab-icon">🎬</span>
+          <span class="tab-text">Movies</span>
+        </button>
+        <button class="category-tab" data-category="tv" data-theme="tv">
+          <span class="tab-icon">📺</span>
+          <span class="tab-text">TV Shows</span>
+        </button>
+        <button class="category-tab" data-category="music" data-theme="music">
+          <span class="tab-icon">🎵</span>
+          <span class="tab-text">Music</span>
+        </button>
+        <button class="category-tab" data-category="games" data-theme="games">
+          <span class="tab-icon">🎮</span>
+          <span class="tab-text">Games</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content Sections -->
+  <div class="trending-sections">
+    
+    <!-- Movies Section -->
+    <div class="content-section active" id="moviesSection">
+      <div class="section-row">
+        <div class="section-header">
+          <h2 class="section-title">🔥 Trending Worldwide</h2>
+          <p class="section-subtitle">What everyone's watching right now</p>
+        </div>
+        <div class="content-carousel" id="moviesTrending">
+          <div class="loading-carousel">
+            <div class="loading-spinner"></div>
+            <p>Loading trending movies...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-row">
+        <div class="section-header">
+          <h2 class="section-title">⭐ Top Rated</h2>
+          <p class="section-subtitle">Critically acclaimed masterpieces</p>
+        </div>
+        <div class="content-carousel" id="moviesTopRated">
+          <div class="loading-carousel">
+            <div class="loading-spinner"></div>
+            <p>Loading top rated movies...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-row">
+        <div class="section-header">
+          <h2 class="section-title">🆕 Latest Releases</h2>
+          <p class="section-subtitle">Fresh from the cinema</p>
+        </div>
+        <div class="content-carousel" id="moviesLatest">
+          <div class="loading-carousel">
+            <div class="loading-spinner"></div>
+            <p>Loading latest movies...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TV Shows Section -->
+    <div class="content-section" id="tvSection">
+      <div class="section-row">
+        <div class="section-header">
+          <h2 class="section-title">🔥 Trending Shows</h2>
+          <p class="section-subtitle">Binge-worthy series everyone's talking about</p>
+        </div>
+        <div class="content-carousel" id="tvTrending">
+          <div class="loading-carousel">
+            <div class="loading-spinner"></div>
+            <p>Loading trending shows...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-row">
+        <div class="section-header">
+          <h2 class="section-title">⭐ Top Rated Series</h2>
+          <p class="section-subtitle">The highest rated shows of all time</p>
+        </div>
+        <div class="content-carousel" id="tvTopRated">
+          <div class="loading-carousel">
+            <div class="loading-spinner"></div>
+            <p>Loading top rated shows...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-row">
+        <div class="section-header">
+          <h2 class="section-title">📺 On Air Today</h2>
+          <p class="section-subtitle">Shows airing new episodes today</p>
+        </div>
+        <div class="content-carousel" id="tvOnAir">
+          <div class="loading-carousel">
+            <div class="loading-spinner"></div>
+            <p>Loading on air shows...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Music Section -->
+    <div class="content-section" id="musicSection">
+      <div class="section-row">
+        <div class="section-header">
+          <h2 class="section-title">🔥 Trending Albums</h2>
+          <p class="section-subtitle">The hottest albums right now</p>
+        </div>
+        <div class="content-carousel" id="musicTrending">
+          <div class="loading-carousel">
+            <div class="loading-spinner"></div>
+            <p>Loading trending music...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-row">
+        <div class="section-header">
+          <h2 class="section-title">🎵 New Releases</h2>
+          <p class="section-subtitle">Fresh drops from your favorite artists</p>
+        </div>
+        <div class="content-carousel" id="musicNew">
+          <div class="loading-carousel">
+            <div class="loading-spinner"></div>
+            <p>Loading new releases...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-row">
+        <div class="section-header">
+          <h2 class="section-title">🎤 Featured Artists</h2>
+          <p class="section-subtitle">Artists you need to know</p>
+        </div>
+        <div class="content-carousel" id="musicFeatured">
+          <div class="loading-carousel">
+            <div class="loading-spinner"></div>
+            <p>Loading featured artists...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Games Section -->
+    <div class="content-section" id="gamesSection">
+      <div class="section-row">
+        <div class="section-header">
+          <h2 class="section-title">🔥 Trending Games</h2>
+          <p class="section-subtitle">Games everyone's playing</p>
+        </div>
+        <div class="content-carousel" id="gamesTrending">
+          <div class="loading-carousel">
+            <div class="loading-spinner"></div>
+            <p>Loading trending games...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-row">
+        <div class="section-header">
+          <h2 class="section-title">⭐ Top Rated</h2>
+          <p class="section-subtitle">Highest rated games of all time</p>
+        </div>
+        <div class="content-carousel" id="gamesTopRated">
+          <div class="loading-carousel">
+            <div class="loading-spinner"></div>
+            <p>Loading top rated games...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-row">
+        <div class="section-header">
+          <h2 class="section-title">🆕 New Releases</h2>
+          <p class="section-subtitle">Latest game releases</p>
+        </div>
+        <div class="content-carousel" id="gamesNew">
+          <div class="loading-carousel">
+            <div class="loading-spinner"></div>
+            <p>Loading new games...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Quick Search Section -->
+  <div class="quick-search-section">
+    <div class="search-prompt">
+      <h2>Looking for something specific?</h2>
+      <a href="/browse/" class="search-cta-btn">
+        <i class="fas fa-search"></i>
+        <span>Advanced Search</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/home.js' %}"></script>
+{% endblock %}

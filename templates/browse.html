@@ -92,7 +92,7 @@ function csrf() {
   return document.querySelector('#csrfForm input[name=csrfmiddlewaretoken]')?.value || '';
 }
 
-// Modern card template with glassmorphism
+// Enhanced card template with personality and dynamic elements
 function cardTemplate(r) {
   const typeIcons = {
     movie: '🎬',
@@ -101,32 +101,70 @@ function cardTemplate(r) {
     game: '🎮'
   };
 
+  const typeColors = {
+    movie: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)',
+    tv: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    album: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+    game: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+  };
+
+  // Generate random tilt for personality
+  const tiltX = (Math.random() - 0.5) * 4;
+  const tiltY = (Math.random() - 0.5) * 4;
+
+  // Get rating if available
+  const rating = r.rating ? Math.round(r.rating) : 0;
+  const ratingStars = rating > 0 ? '★'.repeat(rating) + '☆'.repeat(5 - rating) : '';
+
   return `
-  <div class="result-card glass-card hover-lift" data-type="${r.type}" data-id="${r.id}">
+  <div class="result-card" data-type="${r.type}" data-id="${r.id}" style="--tilt-x: ${tiltX}deg; --tilt-y: ${tiltY}deg;">
     <div class="card-image-container">
-      ${r.cover ? `<img src="${r.cover}" class="card-image" alt="${r.title}" loading="lazy">` : `<div class="card-placeholder"><i class="fas fa-image"></i></div>`}
+      ${r.cover ?
+        `<img src="${r.cover}" class="card-image" alt="${r.title}" loading="lazy">` :
+        `<div class="card-placeholder">
+          <i class="fas fa-image"></i>
+        </div>`
+      }
       <div class="card-overlay">
         <button class="quick-action-btn" onclick="showDetail('${r.type}', '${r.id}')">
-          <i class="fas fa-info-circle"></i>
+          <i class="fas fa-play"></i>
         </button>
       </div>
+      ${rating > 0 ? `
+        <div class="card-rating-badge">
+          <span class="rating-stars">${ratingStars}</span>
+          <span class="rating-number">${rating}</span>
+        </div>
+      ` : ''}
     </div>
-    <div class="card-type-badge">
+
+    <div class="card-content">
+      <div class="card-type-badge" style="background: ${typeColors[r.type] || typeColors.movie}">
         <span class="type-icon">${typeIcons[r.type] || '📄'}</span>
-        <span class="type-text">${r.type.toUpperCase()}</span>
+        <span>${r.type.toUpperCase()}</span>
       </div>
+
       <h3 class="card-title">${r.title}</h3>
       ${r.year ? `<p class="card-year">${r.year}</p>` : ''}
-      ${r.genres && r.genres.length ? `<div class="card-genres">${r.genres.slice(0,2).map(g => `<span class="genre-tag">${g}</span>`).join('')}</div>` : ''}
+
+      ${r.genres && r.genres.length ? `
+        <div class="card-genres">
+          ${r.genres.slice(0,3).map(g => `<span class="genre-tag">${g}</span>`).join('')}
+        </div>
+      ` : ''}
+
+      ${r.overview ? `
+        <p class="card-description">${r.overview.length > 100 ? r.overview.substring(0, 100) + '...' : r.overview}</p>
+      ` : ''}
 
       <div class="card-actions">
         <button class="action-btn primary detail" data-type="${r.type}" data-id="${r.id}">
           <i class="fas fa-eye"></i>
-          <span>Details</span>
+          <span>Explore</span>
         </button>
         <button class="action-btn secondary list-toggle" data-type="${r.type}" data-id="${r.id}" data-list="watch">
-          <i class="fas fa-plus"></i>
-          <span>Add</span>
+          <i class="fas fa-heart"></i>
+          <span>Save</span>
         </button>
       </div>
     </div>
